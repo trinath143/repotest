@@ -29,12 +29,12 @@ jobs:
         
 # Validates all of the Data Factory resources in the repository. You'll get the same validation errors as when "Validate All" is selected.
     - name: Validate
-      run: npm run build validate ${{github.workspace}}/ /subscriptions/69f62951-1e1a-4292-aede-e3d38e4fe8a8/resourceGroups/RG-Sai/providers/Microsoft.DataFactory/factories/ADF-Prod-mytest # (2) The validate command needs the root folder location of your repository where all the objects are stored. And the 2nd parameter is the resourceID of the ADF instance 
+      run: npm run build validate ${{github.workspace}}/ /subscriptions/47966819-a9a5-4e11-b460-e507b40ab6b6/resourceGroups/RG-Trinath/providers/Microsoft.DataFactory/factories/adf22qa # (2) The validate command needs the root folder location of your repository where all the objects are stored. And the 2nd parameter is the resourceID of the ADF instance 
       working-directory: ${{github.workspace}}/
  
 
     - name: Validate and Generate ARM template
-      run: npm run build export ${{github.workspace}}/ /subscriptions/69f62951-1e1a-4292-aede-e3d38e4fe8a8/resourceGroups/RG-Sai/providers/Microsoft.DataFactory/factories/ADF-Prod-mytest "ExportedArmTemplate"  # (3) The build command, as validate, needs the root folder location of your repository where all the objects are stored. And the 2nd parameter is the resourceID of the ADF instance. The 3rd parameter is the exported ARM template artifact name 
+      run: npm run build export ${{github.workspace}}/ /subscriptions/47966819-a9a5-4e11-b460-e507b40ab6b6/resourceGroups/RG-Trinath/providers/Microsoft.DataFactory/factories/adf22qa "ExportedArmTemplate"  # (3) The build command, as validate, needs the root folder location of your repository where all the objects are stored. And the 2nd parameter is the resourceID of the ADF instance. The 3rd parameter is the exported ARM template artifact name 
       working-directory: ${{github.workspace}}/
  
 # In order to leverage the artifact in another job, we need to upload it with the upload action 
