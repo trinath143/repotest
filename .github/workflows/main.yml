@@ -1,0 +1,83 @@
+name: Deploy to Production
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+
+permissions:
+      id-token: write
+      contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+    - uses: actions/checkout@v3
+# Installs Node and the npm packages saved in your package.json file in the build
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v3.4.1
+      with:
+        node-version: 14.x
+        
+    - name: install ADF Utilities package
+      run: npm install
+      working-directory: ${{github.workspace}}/  # (1) provide the folder location of the package.json file
+        
+# Validates all of the Data Factory resources in the repository. You'll get the same validation errors as when "Validate All" is selected.
+    - name: Validate
+      run: npm run build validate ${{github.workspace}}/ /subscriptions/69f62951-1e1a-4292-aede-e3d38e4fe8a8/resourceGroups/RG-Sai/providers/Microsoft.DataFactory/factories/ADF-Prod-mytest # (2) The validate command needs the root folder location of your repository where all the objects are stored. And the 2nd parameter is the resourceID of the ADF instance 
+      working-directory: ${{github.workspace}}/
+ 
+
+    - name: Validate and Generate ARM template
+      run: npm run build export ${{github.workspace}}/ /subscriptions/69f62951-1e1a-4292-aede-e3d38e4fe8a8/resourceGroups/RG-Sai/providers/Microsoft.DataFactory/factories/ADF-Prod-mytest "ExportedArmTemplate"  # (3) The build command, as validate, needs the root folder location of your repository where all the objects are stored. And the 2nd parameter is the resourceID of the ADF instance. The 3rd parameter is the exported ARM template artifact name 
+      working-directory: ${{github.workspace}}/
+ 
+# In order to leverage the artifact in another job, we need to upload it with the upload action 
+    - name: upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ExportedArmTemplate # (4) use the same artifact name you used in the previous export step
+        path: ${{github.workspace}}/ExportedArmTemplate
+        
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    
+ # we 1st download the previously uploaded artifact so we can leverage it later in the release job     
+      - name: Download a Build Artifact
+        uses: actions/download-artifact@v3.0.2
+        with:
+          name: ExportedArmTemplate # (5) Artifact name 
+
+
+      - name: Login via Az module
+        uses: azure/login@v1
+        with:
+          #client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          #tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          #subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: c8988f93-84ce-4547-9a76-654950d8bd0f
+          tenant-id: 240a251f-afbf-4e48-82dc-f5efd45ff1c6
+          subscription-id: 47966819-a9a5-4e11-b460-e507b40ab6b6
+          enable-AzPSSession: true 
+
+      - name: data-factory-deploy
+        if: ${{ github.event.inputs.environment == 'production' }}
+        uses: Azure/data-factory-deploy-action@v1.2.0
+        with:
+          resourceGroupName: RG-Trinath # (6) your target ADF resource group name
+          dataFactoryName: adf22qa # (7) your target ADF name
+          armTemplateFile: ARMTemplateForFactory.json # (8) ARM template file name ARMTemplateForFactory.json
+          armTemplateParametersFile: ARMTemplateParametersForFactory.json # (9) ARM template parameters file name ARMTemplateParametersForFactory.json
+          additionalParameters: factoryName=adf22qa # (10) Parameters which will be replaced in the ARM template. Expected format 'key1=value key2=value keyN=value'. At the minimum here you should provide the target ADF name parameter. Check the ARMTemplateParametersForFactory.json file for all the parameters that are expected in your scenario
+         
+          # skipAzModuleInstallation:  # Parameters which skip the Az module installation. Optional, default is false.      
+
+    
+  
